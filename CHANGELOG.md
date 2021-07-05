@@ -138,11 +138,13 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ### Added
 
+- `OutPortX` (X = 2..8) structures which can handle several pins at once [#426]
 - Support eMMC peripherals using SDIO module [#458]
 - `defmt::Format` derive on enums behind `defmt` feature [#460]
 - SPI transactional impl [#464]
 
 [#418]: https://github.com/stm32-rs/stm32f4xx-hal/pull/418
+[#426]: https://github.com/stm32-rs/stm32f4xx-hal/pull/426
 [#458]: https://github.com/stm32-rs/stm32f4xx-hal/pull/458
 [#460]: https://github.com/stm32-rs/stm32f4xx-hal/pull/460
 [#464]: https://github.com/stm32-rs/stm32f4xx-hal/pull/464
