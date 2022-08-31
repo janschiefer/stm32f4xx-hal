@@ -39,14 +39,14 @@ mod nb {
 
         fn read(&mut self) -> nb::Result<W, Error> {
             if BIDI {
-                self.spi.cr1.modify(|_, w| w.bidioe().clear_bit());
+                self.bidi_input();
             }
             self.check_read()
         }
 
         fn send(&mut self, byte: W) -> nb::Result<(), Error> {
             if BIDI {
-                self.spi.cr1.modify(|_, w| w.bidioe().set_bit());
+                self.bidi_output();
             }
             self.check_send(byte)
         }
@@ -58,7 +58,7 @@ mod blocking {
     use embedded_hal::blocking::spi::{Operation, Transactional, Transfer, Write, WriteIter};
     use embedded_hal::spi::FullDuplex;
 
-    impl<SPI, PINS, const BIDI: bool> Transfer<u8> for Spi<SPI, PINS, BIDI, u8>
+    impl<SPI, PINS> Transfer<u8> for Spi<SPI, PINS, false, u8>
     where
         SPI: Instance,
     {
@@ -74,7 +74,7 @@ mod blocking {
         }
     }
 
-    impl<SPI, PINS, const BIDI: bool> Transfer<u16> for Spi<SPI, PINS, BIDI, u16>
+    impl<SPI, PINS> Transfer<u16> for Spi<SPI, PINS, false, u16>
     where
         SPI: Instance,
     {
@@ -111,10 +111,15 @@ mod blocking {
         where
             WI: IntoIterator<Item = u8>,
         {
-            for word in words.into_iter() {
-                nb::block!(self.send(word))?;
-                if !BIDI {
-                    nb::block!(self.read())?;
+            if BIDI {
+                self.bidi_output();
+                for word in words.into_iter() {
+                    nb::block!(self.check_send(word))?;
+                }
+            } else {
+                for word in words.into_iter() {
+                    nb::block!(self.check_send(word))?;
+                    nb::block!(self.check_read())?;
                 }
             }
 
@@ -143,10 +148,15 @@ mod blocking {
         where
             WI: IntoIterator<Item = u16>,
         {
-            for word in words.into_iter() {
-                nb::block!(self.send(word))?;
-                if !BIDI {
-                    nb::block!(self.read())?;
+            if BIDI {
+                self.bidi_output();
+                for word in words.into_iter() {
+                    nb::block!(self.check_send(word))?;
+                }
+            } else {
+                for word in words.into_iter() {
+                    nb::block!(self.check_send(word))?;
+                    nb::block!(self.check_read())?;
                 }
             }
 

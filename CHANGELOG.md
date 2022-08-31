@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 ### Changed
 
  - Support `u16` read/write for SPI
+ - SPI bidi takes 2 pins
  - Use `bool` for BIDI mode type
  - `PwmHz::get_period`: fix computation of return value, prevent division by zero
  - apply #[inline] attribute to bitbanding functions [#517]

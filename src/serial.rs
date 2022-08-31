@@ -26,7 +26,7 @@ use nb::block;
 mod hal_02;
 mod hal_1;
 
-use crate::gpio::{Const, PinA, PushPull, SetAlternate};
+use crate::gpio::{Const, PinA, SetAlternate};
 
 use crate::pac::{self, RCC};
 
@@ -191,8 +191,8 @@ pub trait Pins<USART> {
 }
 impl<USART, TX, RX, const TXA: u8, const RXA: u8> Pins<USART> for (TX, RX)
 where
-    TX: PinA<TxPin, USART, A = Const<TXA>> + SetAlternate<TXA, PushPull>,
-    RX: PinA<RxPin, USART, A = Const<RXA>> + SetAlternate<RXA, PushPull>,
+    TX: PinA<TxPin, USART, A = Const<TXA>> + SetAlternate<TXA>,
+    RX: PinA<RxPin, USART, A = Const<RXA>> + SetAlternate<RXA>,
 {
     fn set_alt_mode(&mut self) {
         self.0.set_alt_mode();

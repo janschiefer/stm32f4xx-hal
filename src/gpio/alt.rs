@@ -3,7 +3,7 @@ use crate::{gpio, i2c, i2s, pac, serial, spi};
 
 pub struct Const<const A: u8>;
 
-pub trait SetAlternate<const A: u8, Otype> {
+pub trait SetAlternate<const A: u8, Otype = PushPull> {
     fn set_alt_mode(&mut self);
     fn restore_mode(&mut self);
 }

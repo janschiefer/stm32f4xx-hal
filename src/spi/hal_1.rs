@@ -51,16 +51,16 @@ mod nb {
     {
         fn read(&mut self) -> nb::Result<W, Error> {
             if BIDI {
-                self.spi.cr1.modify(|_, w| w.bidioe().clear_bit());
+                self.bidi_input();
             }
             self.check_read()
         }
 
-        fn write(&mut self, byte: W) -> nb::Result<(), Error> {
+        fn write(&mut self, word: W) -> nb::Result<(), Error> {
             if BIDI {
-                self.spi.cr1.modify(|_, w| w.bidioe().set_bit());
+                self.bidi_output();
             }
-            self.check_send(byte)
+            self.check_send(word)
         }
     }
 }
@@ -72,7 +72,7 @@ mod blocking {
         nb::FullDuplex,
     };
 
-    impl<SPI, PINS, const BIDI: bool, W: FrameSize + 'static> SpiBus<W> for Spi<SPI, PINS, BIDI, W>
+    impl<SPI, PINS, W: FrameSize + 'static> SpiBus<W> for Spi<SPI, PINS, false, W>
     where
         SPI: Instance,
     {
@@ -111,10 +111,15 @@ mod blocking {
         SPI: Instance,
     {
         fn write(&mut self, words: &[W]) -> Result<(), Self::Error> {
-            for word in words {
-                nb::block!(<Self as FullDuplex<W>>::write(self, *word))?;
-                if !BIDI {
-                    nb::block!(<Self as FullDuplex<W>>::read(self))?;
+            if BIDI {
+                self.bidi_output();
+                for word in words {
+                    nb::block!(self.check_send(*word))?;
+                }
+            } else {
+                for word in words {
+                    nb::block!(self.check_send(*word))?;
+                    nb::block!(self.check_read())?;
                 }
             }
 
@@ -127,9 +132,16 @@ mod blocking {
         SPI: Instance,
     {
         fn read(&mut self, words: &mut [W]) -> Result<(), Self::Error> {
-            for word in words {
-                nb::block!(<Self as FullDuplex<W>>::write(self, W::default()))?;
-                *word = nb::block!(<Self as FullDuplex<W>>::read(self))?;
+            if BIDI {
+                self.bidi_input();
+                for word in words {
+                    *word = nb::block!(self.check_read())?;
+                }
+            } else {
+                for word in words {
+                    nb::block!(self.check_send(W::default()))?;
+                    *word = nb::block!(self.check_read())?;
+                }
             }
 
             Ok(())

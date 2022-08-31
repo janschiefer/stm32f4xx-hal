@@ -3,7 +3,7 @@ use core::ops::Deref;
 use core::ptr;
 
 use crate::dma::traits::PeriAddress;
-use crate::gpio::{Const, NoPin, PinA, PushPull, SetAlternate};
+use crate::gpio::{Const, NoPin, PinA, SetAlternate};
 use crate::pac;
 
 /// Clock polarity
@@ -72,9 +72,9 @@ pub trait Pins<SPI> {
 impl<SPI, SCK, MISO, MOSI, const SCKA: u8, const MISOA: u8, const MOSIA: u8> Pins<SPI>
     for (SCK, MISO, MOSI)
 where
-    SCK: PinA<Sck, SPI, A = Const<SCKA>> + SetAlternate<SCKA, PushPull>,
-    MISO: PinA<Miso, SPI, A = Const<MISOA>> + SetAlternate<MISOA, PushPull>,
-    MOSI: PinA<Mosi, SPI, A = Const<MOSIA>> + SetAlternate<MOSIA, PushPull>,
+    SCK: PinA<Sck, SPI, A = Const<SCKA>> + SetAlternate<SCKA>,
+    MISO: PinA<Miso, SPI, A = Const<MISOA>> + SetAlternate<MISOA>,
+    MOSI: PinA<Mosi, SPI, A = Const<MOSIA>> + SetAlternate<MOSIA>,
 {
     fn set_alt_mode(&mut self) {
         self.0.set_alt_mode();
@@ -206,15 +206,15 @@ pub trait SpiExt: Sized + Instance {
     ) -> Spi<Self, (SCK, MISO, MOSI), false, u8, Master>
     where
         (SCK, MISO, MOSI): Pins<Self>;
-    fn spi_bidi<SCK, MISO, MOSI>(
+    fn spi_bidi<SCK, MOSI>(
         self,
-        pins: (SCK, MISO, MOSI),
+        pins: (SCK, MOSI),
         mode: impl Into<Mode>,
         freq: Hertz,
         clocks: &Clocks,
-    ) -> Spi<Self, (SCK, MISO, MOSI), true, u8, Master>
+    ) -> Spi<Self, (SCK, NoPin, MOSI), true, u8, Master>
     where
-        (SCK, MISO, MOSI): Pins<Self>;
+        (SCK, NoPin, MOSI): Pins<Self>;
     fn spi_slave<SCK, MISO, MOSI>(
         self,
         pins: (SCK, MISO, MOSI),
@@ -224,15 +224,15 @@ pub trait SpiExt: Sized + Instance {
     ) -> Spi<Self, (SCK, MISO, MOSI), false, u8, Slave>
     where
         (SCK, MISO, MOSI): Pins<Self>;
-    fn spi_bidi_slave<SCK, MISO, MOSI>(
+    fn spi_bidi_slave<SCK, MISO>(
         self,
-        pins: (SCK, MISO, MOSI),
+        pins: (SCK, MISO),
         mode: impl Into<Mode>,
         freq: Hertz,
         clocks: &Clocks,
-    ) -> Spi<Self, (SCK, MISO, MOSI), true, u8, Slave>
+    ) -> Spi<Self, (SCK, MISO, NoPin), true, u8, Slave>
     where
-        (SCK, MISO, MOSI): Pins<Self>;
+        (SCK, MISO, NoPin): Pins<Self>;
 }
 
 impl<SPI: Instance> SpiExt for SPI {
@@ -248,15 +248,15 @@ impl<SPI: Instance> SpiExt for SPI {
     {
         Spi::new(self, pins, mode, freq, clocks)
     }
-    fn spi_bidi<SCK, MISO, MOSI>(
+    fn spi_bidi<SCK, MOSI>(
         self,
-        pins: (SCK, MISO, MOSI),
+        pins: (SCK, MOSI),
         mode: impl Into<Mode>,
         freq: Hertz,
         clocks: &Clocks,
-    ) -> Spi<Self, (SCK, MISO, MOSI), true, u8, Master>
+    ) -> Spi<Self, (SCK, NoPin, MOSI), true, u8, Master>
     where
-        (SCK, MISO, MOSI): Pins<Self>,
+        (SCK, NoPin, MOSI): Pins<Self>,
     {
         Spi::new_bidi(self, pins, mode, freq, clocks)
     }
@@ -272,15 +272,15 @@ impl<SPI: Instance> SpiExt for SPI {
     {
         Spi::new_slave(self, pins, mode, freq, clocks)
     }
-    fn spi_bidi_slave<SCK, MISO, MOSI>(
+    fn spi_bidi_slave<SCK, MISO>(
         self,
-        pins: (SCK, MISO, MOSI),
+        pins: (SCK, MISO),
         mode: impl Into<Mode>,
         freq: Hertz,
         clocks: &Clocks,
-    ) -> Spi<Self, (SCK, MISO, MOSI), true, u8, Slave>
+    ) -> Spi<Self, (SCK, MISO, NoPin), true, u8, Slave>
     where
-        (SCK, MISO, MOSI): Pins<Self>,
+        (SCK, MISO, NoPin): Pins<Self>,
     {
         Spi::new_bidi_slave(self, pins, mode, freq, clocks)
     }
@@ -376,16 +376,16 @@ impl<SPI: Instance, SCK, MISO, MOSI> Spi<SPI, (SCK, MISO, MOSI), false, u8, Mast
     }
 }
 
-impl<SPI: Instance, SCK, MISO, MOSI> Spi<SPI, (SCK, MISO, MOSI), true, u8, Master> {
+impl<SPI: Instance, SCK, MOSI> Spi<SPI, (SCK, NoPin, MOSI), true, u8, Master> {
     pub fn new_bidi(
         spi: SPI,
-        mut pins: (SCK, MISO, MOSI),
+        pins: (SCK, MOSI),
         mode: impl Into<Mode>,
         freq: Hertz,
         clocks: &Clocks,
     ) -> Self
     where
-        (SCK, MISO, MOSI): Pins<SPI>,
+        (SCK, NoPin, MOSI): Pins<SPI>,
     {
         unsafe {
             // NOTE(unsafe) this reference will only be used for atomic writes with no side effects.
@@ -394,6 +394,7 @@ impl<SPI: Instance, SCK, MISO, MOSI> Spi<SPI, (SCK, MISO, MOSI), true, u8, Maste
             SPI::reset(rcc);
         }
 
+        let mut pins = (pins.0, NoPin, pins.1);
         pins.set_alt_mode();
 
         Self::_new(spi, pins)
@@ -428,16 +429,16 @@ impl<SPI: Instance, SCK, MISO, MOSI> Spi<SPI, (SCK, MISO, MOSI), false, u8, Slav
     }
 }
 
-impl<SPI: Instance, SCK, MISO, MOSI> Spi<SPI, (SCK, MISO, MOSI), true, u8, Slave> {
+impl<SPI: Instance, SCK, MISO> Spi<SPI, (SCK, MISO, NoPin), true, u8, Slave> {
     pub fn new_bidi_slave(
         spi: SPI,
-        mut pins: (SCK, MISO, MOSI),
+        pins: (SCK, MISO),
         mode: impl Into<Mode>,
         freq: Hertz,
         clocks: &Clocks,
     ) -> Self
     where
-        (SCK, MISO, MOSI): Pins<SPI>,
+        (SCK, MISO, NoPin): Pins<SPI>,
     {
         unsafe {
             // NOTE(unsafe) this reference will only be used for atomic writes with no side effects.
@@ -446,6 +447,7 @@ impl<SPI: Instance, SCK, MISO, MOSI> Spi<SPI, (SCK, MISO, MOSI), true, u8, Slave
             SPI::reset(rcc);
         }
 
+        let mut pins = (pins.0, pins.1, NoPin);
         pins.set_alt_mode();
 
         Self::_new(spi, pins)
@@ -477,18 +479,27 @@ impl<SPI: Instance, PINS, const BIDI: bool, W, OPERATION> Spi<SPI, PINS, BIDI, W
 
     /// Convert the spi to another mode.
     fn into_mode<const BIDI2: bool, W2: FrameSize, OPERATION2: Ms>(
-        self,
+        mut self,
     ) -> Spi<SPI, PINS, BIDI2, W2, OPERATION2> {
-        let mut spi = Spi::_new(self.spi, self.pins);
-        spi.enable(false);
-        spi.init()
+        self.disable();
+        Spi::_new(self.spi, self.pins).init()
     }
 
     /// Enable/disable spi
-    pub fn enable(&mut self, enable: bool) {
+    pub fn enable(&mut self) {
         self.spi.cr1.modify(|_, w| {
             // spe: enable the SPI bus
-            w.spe().bit(enable)
+            w.spe().set_bit()
+        });
+    }
+
+    /// Enable/disable spi
+    pub fn disable(&mut self) {
+        // Wait for !BSY
+        while self.is_busy() {}
+        self.spi.cr1.modify(|_, w| {
+            // spe: enable the SPI bus
+            w.spe().clear_bit()
         });
     }
 
@@ -604,6 +615,16 @@ impl<SPI: Instance, PINS, const BIDI: bool, W, OPERATION> Spi<SPI, PINS, BIDI, W
     #[inline]
     pub fn is_overrun(&self) -> bool {
         self.spi.sr.read().ovr().bit_is_set()
+    }
+
+    #[inline]
+    fn bidi_output(&mut self) {
+        self.spi.cr1.modify(|_, w| w.bidioe().set_bit());
+    }
+
+    #[inline]
+    fn bidi_input(&mut self) {
+        self.spi.cr1.modify(|_, w| w.bidioe().set_bit());
     }
 }
 
