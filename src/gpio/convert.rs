@@ -19,6 +19,12 @@ impl<const P: char, const N: u8, MODE: PinMode, MODE1: PinMode> PFrom<Pin<P, N, 
     }
 }
 
+impl PFrom<NoPin> for NoPin {
+    fn pfrom(p: NoPin) -> Self {
+        p
+    }
+}
+
 impl<P1, P2, P1F, P2F> PFrom<(P1F, P2F)> for (P1, P2)
 where
     P1: PFrom<P1F>,
@@ -48,7 +54,12 @@ where
     P4: PFrom<P4F>,
 {
     fn pfrom((p1f, p2f, p3f, p4f): (P1F, P2F, P3F, P4F)) -> Self {
-        (P1::pfrom(p1f), P2::pfrom(p2f), P3::pfrom(p3f), P4::pfrom(p4f))
+        (
+            P1::pfrom(p1f),
+            P2::pfrom(p2f),
+            P3::pfrom(p3f),
+            P4::pfrom(p4f),
+        )
     }
 }
 

@@ -55,6 +55,13 @@ pub trait PinA<PIN, PER> {
 
 pub trait APin<PIN, PER, MODE = PushPull> {}
 
+impl<PIN, PER, MODE> APin<PIN, PER, MODE> for NoPin
+where
+    PIN: crate::Sealed,
+    PER: crate::Sealed,
+{
+}
+
 impl<PIN, PER> PinA<PIN, PER> for NoPin
 where
     PIN: crate::Sealed,

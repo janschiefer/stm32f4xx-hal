@@ -22,7 +22,7 @@ fn main() -> ! {
     let gpioa = dp.GPIOA.split();
 
     let spi = dp.SPI1.spi(
-        (gpioa.pa5, NoPin, gpioa.pa7),
+        (gpioa.pa5.into_alternate(), NoPin, gpioa.pa7.into_alternate()),
         ws2812::MODE,
         3500.kHz(),
         &clocks,

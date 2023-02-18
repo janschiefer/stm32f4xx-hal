@@ -3,7 +3,7 @@ use core::ops::Deref;
 use core::ptr;
 
 use crate::dma::traits::PeriAddress;
-use crate::gpio::{NoPin, APin, PFrom, PInto, PushPull};
+use crate::gpio::{APin, NoPin, PFrom, PInto, PushPull};
 use crate::pac;
 
 /// Clock polarity
@@ -64,8 +64,7 @@ impl crate::Sealed for Mosi {}
 pub struct Nss;
 impl crate::Sealed for Nss {}
 
-pub trait Pins<SPI> {
-}
+pub trait Pins<SPI> {}
 
 impl<SPI, SCK, MISO, MOSI> Pins<SPI> for (SCK, MISO, MOSI)
 where
@@ -184,90 +183,90 @@ spi! { pac::SPI5: Spi5 }
 spi! { pac::SPI6: Spi6 }
 
 pub trait SpiExt: Sized + Instance {
-    fn spi<SCK, MISO, MOSI, ISCK, IMISO, IMOSI>(
+    fn spi<SCK, MISO, MOSI>(
         self,
-        pins: (ISCK, IMISO, IMOSI),
+        pins: (SCK, MISO, MOSI),
         mode: impl Into<Mode>,
         freq: Hertz,
         clocks: &Clocks,
     ) -> Spi<Self, (SCK, MISO, MOSI), false, u8, Master>
     where
-        (SCK, MISO, MOSI): Pins<Self> + PFrom<(ISCK, IMISO, IMOSI)>;
-    fn spi_bidi<SCK, MISO, MOSI, ISCK, IMISO, IMOSI>(
+        (SCK, MISO, MOSI): Pins<Self> + PFrom<(SCK, MISO, MOSI)>;
+    fn spi_bidi<SCK, MISO, MOSI>(
         self,
-        pins: (ISCK, IMISO, IMOSI),
+        pins: (SCK, MISO, MOSI),
         mode: impl Into<Mode>,
         freq: Hertz,
         clocks: &Clocks,
     ) -> Spi<Self, (SCK, MISO, MOSI), true, u8, Master>
     where
-        (SCK, MISO, MOSI): Pins<Self> + PFrom<(ISCK, IMISO, IMOSI)>;
-    fn spi_slave<SCK, MISO, MOSI, ISCK, IMISO, IMOSI>(
+        (SCK, MISO, MOSI): Pins<Self> + PFrom<(SCK, MISO, MOSI)>;
+    fn spi_slave<SCK, MISO, MOSI>(
         self,
-        pins: (ISCK, IMISO, IMOSI),
+        pins: (SCK, MISO, MOSI),
         mode: impl Into<Mode>,
         freq: Hertz,
         clocks: &Clocks,
     ) -> Spi<Self, (SCK, MISO, MOSI), false, u8, Slave>
     where
-        (SCK, MISO, MOSI): Pins<Self> + PFrom<(ISCK, IMISO, IMOSI)>;
-    fn spi_bidi_slave<SCK, MISO, MOSI, ISCK, IMISO, IMOSI>(
+        (SCK, MISO, MOSI): Pins<Self> + PFrom<(SCK, MISO, MOSI)>;
+    fn spi_bidi_slave<SCK, MISO, MOSI>(
         self,
-        pins: (ISCK, IMISO, IMOSI),
+        pins: (SCK, MISO, MOSI),
         mode: impl Into<Mode>,
         freq: Hertz,
         clocks: &Clocks,
     ) -> Spi<Self, (SCK, MISO, MOSI), true, u8, Slave>
     where
-        (SCK, MISO, MOSI): Pins<Self> + PFrom<(ISCK, IMISO, IMOSI)>;
+        (SCK, MISO, MOSI): Pins<Self> + PFrom<(SCK, MISO, MOSI)>;
 }
 
 impl<SPI: Instance> SpiExt for SPI {
-    fn spi<SCK, MISO, MOSI, ISCK, IMISO, IMOSI>(
+    fn spi<SCK, MISO, MOSI>(
         self,
-        pins: (ISCK, IMISO, IMOSI),
+        pins: (SCK, MISO, MOSI),
         mode: impl Into<Mode>,
         freq: Hertz,
         clocks: &Clocks,
     ) -> Spi<Self, (SCK, MISO, MOSI), false, u8, Master>
     where
-        (SCK, MISO, MOSI): Pins<Self> + PFrom<(ISCK, IMISO, IMOSI)>,
+        (SCK, MISO, MOSI): Pins<Self> + PFrom<(SCK, MISO, MOSI)>,
     {
         Spi::new(self, pins, mode, freq, clocks)
     }
-    fn spi_bidi<SCK, MISO, MOSI, ISCK, IMISO, IMOSI>(
+    fn spi_bidi<SCK, MISO, MOSI>(
         self,
-        pins: (ISCK, IMISO, IMOSI),
+        pins: (SCK, MISO, MOSI),
         mode: impl Into<Mode>,
         freq: Hertz,
         clocks: &Clocks,
     ) -> Spi<Self, (SCK, MISO, MOSI), true, u8, Master>
     where
-        (SCK, MISO, MOSI): Pins<Self> + PFrom<(ISCK, IMISO, IMOSI)>,
+        (SCK, MISO, MOSI): Pins<Self> + PFrom<(SCK, MISO, MOSI)>,
     {
         Spi::new_bidi(self, pins, mode, freq, clocks)
     }
-    fn spi_slave<SCK, MISO, MOSI, ISCK, IMISO, IMOSI>(
+    fn spi_slave<SCK, MISO, MOSI>(
         self,
-        pins: (ISCK, IMISO, IMOSI),
+        pins: (SCK, MISO, MOSI),
         mode: impl Into<Mode>,
         freq: Hertz,
         clocks: &Clocks,
     ) -> Spi<Self, (SCK, MISO, MOSI), false, u8, Slave>
     where
-        (SCK, MISO, MOSI): Pins<Self> + PFrom<(ISCK, IMISO, IMOSI)>,
+        (SCK, MISO, MOSI): Pins<Self> + PFrom<(SCK, MISO, MOSI)>,
     {
         Spi::new_slave(self, pins, mode, freq, clocks)
     }
-    fn spi_bidi_slave<SCK, MISO, MOSI, ISCK, IMISO, IMOSI>(
+    fn spi_bidi_slave<SCK, MISO, MOSI>(
         self,
-        pins: (ISCK, IMISO, IMOSI),
+        pins: (SCK, MISO, MOSI),
         mode: impl Into<Mode>,
         freq: Hertz,
         clocks: &Clocks,
     ) -> Spi<Self, (SCK, MISO, MOSI), true, u8, Slave>
     where
-        (SCK, MISO, MOSI): Pins<Self> + PFrom<(ISCK, IMISO, IMOSI)>,
+        (SCK, MISO, MOSI): Pins<Self> + PFrom<(SCK, MISO, MOSI)>,
     {
         Spi::new_bidi_slave(self, pins, mode, freq, clocks)
     }
