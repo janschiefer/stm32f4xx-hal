@@ -53,6 +53,8 @@ pub trait PinA<PIN, PER> {
     type A;
 }
 
+pub trait APin<PIN, PER, MODE = PushPull> {}
+
 impl<PIN, PER> PinA<PIN, PER> for NoPin
 where
     PIN: crate::Sealed,
@@ -68,6 +70,7 @@ macro_rules! pin {
                 impl<MODE> PinA<$Pin, pac::$I2C> for gpio::$PX<MODE> {
                     type A = Const<$A>;
                 }
+                impl<MODE> APin<$Pin, pac::$I2C, MODE> for gpio::$PX<Alternate<$A, MODE>> { }
             )*
         )*
     };

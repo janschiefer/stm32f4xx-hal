@@ -3,7 +3,7 @@ use core::ops::Deref;
 use core::ptr;
 
 use crate::dma::traits::PeriAddress;
-use crate::gpio::{Const, NoPin, PinA, PushPull, SetAlternate};
+use crate::gpio::{NoPin, APin, PFrom, PInto, PushPull};
 use crate::pac;
 
 /// Clock polarity
@@ -65,27 +65,14 @@ pub struct Nss;
 impl crate::Sealed for Nss {}
 
 pub trait Pins<SPI> {
-    fn set_alt_mode(&mut self);
-    fn restore_mode(&mut self);
 }
 
-impl<SPI, SCK, MISO, MOSI, const SCKA: u8, const MISOA: u8, const MOSIA: u8> Pins<SPI>
-    for (SCK, MISO, MOSI)
+impl<SPI, SCK, MISO, MOSI> Pins<SPI> for (SCK, MISO, MOSI)
 where
-    SCK: PinA<Sck, SPI, A = Const<SCKA>> + SetAlternate<SCKA, PushPull>,
-    MISO: PinA<Miso, SPI, A = Const<MISOA>> + SetAlternate<MISOA, PushPull>,
-    MOSI: PinA<Mosi, SPI, A = Const<MOSIA>> + SetAlternate<MOSIA, PushPull>,
+    SCK: APin<Sck, SPI, PushPull>,
+    MISO: APin<Miso, SPI, PushPull>,
+    MOSI: APin<Mosi, SPI, PushPull>,
 {
-    fn set_alt_mode(&mut self) {
-        self.0.set_alt_mode();
-        self.1.set_alt_mode();
-        self.2.set_alt_mode();
-    }
-    fn restore_mode(&mut self) {
-        self.0.restore_mode();
-        self.1.restore_mode();
-        self.2.restore_mode();
-    }
 }
 
 /// A filler type for when the SCK pin is unnecessary
@@ -197,90 +184,90 @@ spi! { pac::SPI5: Spi5 }
 spi! { pac::SPI6: Spi6 }
 
 pub trait SpiExt: Sized + Instance {
-    fn spi<SCK, MISO, MOSI>(
+    fn spi<SCK, MISO, MOSI, ISCK, IMISO, IMOSI>(
         self,
-        pins: (SCK, MISO, MOSI),
+        pins: (ISCK, IMISO, IMOSI),
         mode: impl Into<Mode>,
         freq: Hertz,
         clocks: &Clocks,
     ) -> Spi<Self, (SCK, MISO, MOSI), false, u8, Master>
     where
-        (SCK, MISO, MOSI): Pins<Self>;
-    fn spi_bidi<SCK, MISO, MOSI>(
+        (SCK, MISO, MOSI): Pins<Self> + PFrom<(ISCK, IMISO, IMOSI)>;
+    fn spi_bidi<SCK, MISO, MOSI, ISCK, IMISO, IMOSI>(
         self,
-        pins: (SCK, MISO, MOSI),
+        pins: (ISCK, IMISO, IMOSI),
         mode: impl Into<Mode>,
         freq: Hertz,
         clocks: &Clocks,
     ) -> Spi<Self, (SCK, MISO, MOSI), true, u8, Master>
     where
-        (SCK, MISO, MOSI): Pins<Self>;
-    fn spi_slave<SCK, MISO, MOSI>(
+        (SCK, MISO, MOSI): Pins<Self> + PFrom<(ISCK, IMISO, IMOSI)>;
+    fn spi_slave<SCK, MISO, MOSI, ISCK, IMISO, IMOSI>(
         self,
-        pins: (SCK, MISO, MOSI),
+        pins: (ISCK, IMISO, IMOSI),
         mode: impl Into<Mode>,
         freq: Hertz,
         clocks: &Clocks,
     ) -> Spi<Self, (SCK, MISO, MOSI), false, u8, Slave>
     where
-        (SCK, MISO, MOSI): Pins<Self>;
-    fn spi_bidi_slave<SCK, MISO, MOSI>(
+        (SCK, MISO, MOSI): Pins<Self> + PFrom<(ISCK, IMISO, IMOSI)>;
+    fn spi_bidi_slave<SCK, MISO, MOSI, ISCK, IMISO, IMOSI>(
         self,
-        pins: (SCK, MISO, MOSI),
+        pins: (ISCK, IMISO, IMOSI),
         mode: impl Into<Mode>,
         freq: Hertz,
         clocks: &Clocks,
     ) -> Spi<Self, (SCK, MISO, MOSI), true, u8, Slave>
     where
-        (SCK, MISO, MOSI): Pins<Self>;
+        (SCK, MISO, MOSI): Pins<Self> + PFrom<(ISCK, IMISO, IMOSI)>;
 }
 
 impl<SPI: Instance> SpiExt for SPI {
-    fn spi<SCK, MISO, MOSI>(
+    fn spi<SCK, MISO, MOSI, ISCK, IMISO, IMOSI>(
         self,
-        pins: (SCK, MISO, MOSI),
+        pins: (ISCK, IMISO, IMOSI),
         mode: impl Into<Mode>,
         freq: Hertz,
         clocks: &Clocks,
     ) -> Spi<Self, (SCK, MISO, MOSI), false, u8, Master>
     where
-        (SCK, MISO, MOSI): Pins<Self>,
+        (SCK, MISO, MOSI): Pins<Self> + PFrom<(ISCK, IMISO, IMOSI)>,
     {
         Spi::new(self, pins, mode, freq, clocks)
     }
-    fn spi_bidi<SCK, MISO, MOSI>(
+    fn spi_bidi<SCK, MISO, MOSI, ISCK, IMISO, IMOSI>(
         self,
-        pins: (SCK, MISO, MOSI),
+        pins: (ISCK, IMISO, IMOSI),
         mode: impl Into<Mode>,
         freq: Hertz,
         clocks: &Clocks,
     ) -> Spi<Self, (SCK, MISO, MOSI), true, u8, Master>
     where
-        (SCK, MISO, MOSI): Pins<Self>,
+        (SCK, MISO, MOSI): Pins<Self> + PFrom<(ISCK, IMISO, IMOSI)>,
     {
         Spi::new_bidi(self, pins, mode, freq, clocks)
     }
-    fn spi_slave<SCK, MISO, MOSI>(
+    fn spi_slave<SCK, MISO, MOSI, ISCK, IMISO, IMOSI>(
         self,
-        pins: (SCK, MISO, MOSI),
+        pins: (ISCK, IMISO, IMOSI),
         mode: impl Into<Mode>,
         freq: Hertz,
         clocks: &Clocks,
     ) -> Spi<Self, (SCK, MISO, MOSI), false, u8, Slave>
     where
-        (SCK, MISO, MOSI): Pins<Self>,
+        (SCK, MISO, MOSI): Pins<Self> + PFrom<(ISCK, IMISO, IMOSI)>,
     {
         Spi::new_slave(self, pins, mode, freq, clocks)
     }
-    fn spi_bidi_slave<SCK, MISO, MOSI>(
+    fn spi_bidi_slave<SCK, MISO, MOSI, ISCK, IMISO, IMOSI>(
         self,
-        pins: (SCK, MISO, MOSI),
+        pins: (ISCK, IMISO, IMOSI),
         mode: impl Into<Mode>,
         freq: Hertz,
         clocks: &Clocks,
     ) -> Spi<Self, (SCK, MISO, MOSI), true, u8, Slave>
     where
-        (SCK, MISO, MOSI): Pins<Self>,
+        (SCK, MISO, MOSI): Pins<Self> + PFrom<(ISCK, IMISO, IMOSI)>,
     {
         Spi::new_bidi_slave(self, pins, mode, freq, clocks)
     }
@@ -351,15 +338,15 @@ where
 }
 
 impl<SPI: Instance, SCK, MISO, MOSI> Spi<SPI, (SCK, MISO, MOSI), false, u8, Master> {
-    pub fn new(
+    pub fn new<ISCK, IMISO, IMOSI>(
         spi: SPI,
-        mut pins: (SCK, MISO, MOSI),
+        pins: (ISCK, IMISO, IMOSI),
         mode: impl Into<Mode>,
         freq: Hertz,
         clocks: &Clocks,
     ) -> Self
     where
-        (SCK, MISO, MOSI): Pins<SPI>,
+        (SCK, MISO, MOSI): Pins<SPI> + PFrom<(ISCK, IMISO, IMOSI)>,
     {
         unsafe {
             // NOTE(unsafe) this reference will only be used for atomic writes with no side effects.
@@ -368,24 +355,22 @@ impl<SPI: Instance, SCK, MISO, MOSI> Spi<SPI, (SCK, MISO, MOSI), false, u8, Mast
             SPI::reset(rcc);
         }
 
-        pins.set_alt_mode();
-
-        Self::_new(spi, pins)
+        Self::_new(spi, pins.pinto())
             .pre_init(mode.into(), freq, SPI::clock(clocks), true)
             .init()
     }
 }
 
 impl<SPI: Instance, SCK, MISO, MOSI> Spi<SPI, (SCK, MISO, MOSI), true, u8, Master> {
-    pub fn new_bidi(
+    pub fn new_bidi<ISCK, IMISO, IMOSI>(
         spi: SPI,
-        mut pins: (SCK, MISO, MOSI),
+        pins: (ISCK, IMISO, IMOSI),
         mode: impl Into<Mode>,
         freq: Hertz,
         clocks: &Clocks,
     ) -> Self
     where
-        (SCK, MISO, MOSI): Pins<SPI>,
+        (SCK, MISO, MOSI): Pins<SPI> + PFrom<(ISCK, IMISO, IMOSI)>,
     {
         unsafe {
             // NOTE(unsafe) this reference will only be used for atomic writes with no side effects.
@@ -394,24 +379,22 @@ impl<SPI: Instance, SCK, MISO, MOSI> Spi<SPI, (SCK, MISO, MOSI), true, u8, Maste
             SPI::reset(rcc);
         }
 
-        pins.set_alt_mode();
-
-        Self::_new(spi, pins)
+        Self::_new(spi, pins.pinto())
             .pre_init(mode.into(), freq, SPI::clock(clocks), true)
             .init()
     }
 }
 
 impl<SPI: Instance, SCK, MISO, MOSI> Spi<SPI, (SCK, MISO, MOSI), false, u8, Slave> {
-    pub fn new_slave(
+    pub fn new_slave<ISCK, IMISO, IMOSI>(
         spi: SPI,
-        mut pins: (SCK, MISO, MOSI),
+        pins: (ISCK, IMISO, IMOSI),
         mode: impl Into<Mode>,
         freq: Hertz,
         clocks: &Clocks,
     ) -> Self
     where
-        (SCK, MISO, MOSI): Pins<SPI>,
+        (SCK, MISO, MOSI): Pins<SPI> + PFrom<(ISCK, IMISO, IMOSI)>,
     {
         unsafe {
             // NOTE(unsafe) this reference will only be used for atomic writes with no side effects.
@@ -420,24 +403,22 @@ impl<SPI: Instance, SCK, MISO, MOSI> Spi<SPI, (SCK, MISO, MOSI), false, u8, Slav
             SPI::reset(rcc);
         }
 
-        pins.set_alt_mode();
-
-        Self::_new(spi, pins)
+        Self::_new(spi, pins.pinto())
             .pre_init(mode.into(), freq, SPI::clock(clocks), false)
             .init()
     }
 }
 
 impl<SPI: Instance, SCK, MISO, MOSI> Spi<SPI, (SCK, MISO, MOSI), true, u8, Slave> {
-    pub fn new_bidi_slave(
+    pub fn new_bidi_slave<ISCK, IMISO, IMOSI>(
         spi: SPI,
-        mut pins: (SCK, MISO, MOSI),
+        pins: (ISCK, IMISO, IMOSI),
         mode: impl Into<Mode>,
         freq: Hertz,
         clocks: &Clocks,
     ) -> Self
     where
-        (SCK, MISO, MOSI): Pins<SPI>,
+        (SCK, MISO, MOSI): Pins<SPI> + PFrom<(ISCK, IMISO, IMOSI)>,
     {
         unsafe {
             // NOTE(unsafe) this reference will only be used for atomic writes with no side effects.
@@ -446,9 +427,7 @@ impl<SPI: Instance, SCK, MISO, MOSI> Spi<SPI, (SCK, MISO, MOSI), true, u8, Slave
             SPI::reset(rcc);
         }
 
-        pins.set_alt_mode();
-
-        Self::_new(spi, pins)
+        Self::_new(spi, pins.pinto())
             .pre_init(mode.into(), freq, SPI::clock(clocks), false)
             .init()
     }
@@ -460,9 +439,7 @@ where
     SPI: Instance,
     (SCK, MISO, MOSI): Pins<SPI>,
 {
-    pub fn release(mut self) -> (SPI, (SCK, MISO, MOSI)) {
-        self.pins.restore_mode();
-
+    pub fn release(self) -> (SPI, (SCK, MISO, MOSI)) {
         (self.spi, (self.pins.0, self.pins.1, self.pins.2))
     }
 }

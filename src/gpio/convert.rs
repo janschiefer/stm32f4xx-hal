@@ -7,110 +7,61 @@ impl<const P: char, const N: u8, const A: u8> Pin<P, N, Alternate<A, PushPull>> 
     }
 }
 
-impl<const P: char, const N: u8, MODE: PinMode + marker::NotAlt, const A: u8, Otype>
-    From<Pin<P, N, MODE>> for Pin<P, N, Alternate<A, Otype>>
-where
-    Alternate<A, Otype>: PinMode,
-    Self: marker::IntoAf<A>,
-{
-    #[inline(always)]
-    fn from(f: Pin<P, N, MODE>) -> Self {
-        f.into_mode()
-    }
+pub trait PFrom<T> {
+    fn pfrom(f: T) -> Self;
 }
 
-impl<const P: char, const N: u8, const A: u8, const B: u8> From<Pin<P, N, Alternate<B, PushPull>>>
-    for Pin<P, N, Alternate<A, OpenDrain>>
-where
-    Self: marker::IntoAf<A>,
-{
-    #[inline(always)]
-    fn from(f: Pin<P, N, Alternate<B, PushPull>>) -> Self {
-        f.into_mode()
-    }
-}
-
-impl<const P: char, const N: u8, Otype> From<Pin<P, N, Output<Otype>>> for Pin<P, N, Input>
-where
-    Output<Otype>: PinMode,
-{
-    #[inline(always)]
-    fn from(f: Pin<P, N, Output<Otype>>) -> Self {
-        f.into_mode()
-    }
-}
-
-impl<const P: char, const N: u8> From<Pin<P, N, Analog>> for Pin<P, N, Input> {
-    #[inline(always)]
-    fn from(f: Pin<P, N, Analog>) -> Self {
-        f.into_mode()
-    }
-}
-
-impl<const P: char, const N: u8, const A: u8, Otype, MODE> From<Pin<P, N, Alternate<A, Otype>>>
+impl<const P: char, const N: u8, MODE: PinMode, MODE1: PinMode> PFrom<Pin<P, N, MODE1>>
     for Pin<P, N, MODE>
+{
+    fn pfrom(p: Pin<P, N, MODE1>) -> Self {
+        p.into_mode()
+    }
+}
+
+impl<P1, P2, P1F, P2F> PFrom<(P1F, P2F)> for (P1, P2)
 where
-    Alternate<A, Otype>: PinMode,
-    MODE: PinMode + marker::NotAlt,
+    P1: PFrom<P1F>,
+    P2: PFrom<P2F>,
 {
-    #[inline(always)]
-    fn from(f: Pin<P, N, Alternate<A, Otype>>) -> Self {
-        f.into_mode()
+    fn pfrom((p1f, p2f): (P1F, P2F)) -> Self {
+        (P1::pfrom(p1f), P2::pfrom(p2f))
     }
 }
 
-impl<const P: char, const N: u8, Otype> From<Pin<P, N, Input>> for Pin<P, N, Output<Otype>>
+impl<P1, P2, P3, P1F, P2F, P3F> PFrom<(P1F, P2F, P3F)> for (P1, P2, P3)
 where
-    Output<Otype>: PinMode,
+    P1: PFrom<P1F>,
+    P2: PFrom<P2F>,
+    P3: PFrom<P3F>,
 {
-    #[inline(always)]
-    fn from(f: Pin<P, N, Input>) -> Self {
-        f.into_mode()
+    fn pfrom((p1f, p2f, p3f): (P1F, P2F, P3F)) -> Self {
+        (P1::pfrom(p1f), P2::pfrom(p2f), P3::pfrom(p3f))
     }
 }
 
-impl<const P: char, const N: u8, Otype> From<Pin<P, N, Analog>> for Pin<P, N, Output<Otype>>
+impl<P1, P2, P3, P4, P1F, P2F, P3F, P4F> PFrom<(P1F, P2F, P3F, P4F)> for (P1, P2, P3, P4)
 where
-    Output<Otype>: PinMode,
+    P1: PFrom<P1F>,
+    P2: PFrom<P2F>,
+    P3: PFrom<P3F>,
+    P4: PFrom<P4F>,
 {
-    #[inline(always)]
-    fn from(f: Pin<P, N, Analog>) -> Self {
-        f.into_mode()
+    fn pfrom((p1f, p2f, p3f, p4f): (P1F, P2F, P3F, P4F)) -> Self {
+        (P1::pfrom(p1f), P2::pfrom(p2f), P3::pfrom(p3f), P4::pfrom(p4f))
     }
 }
 
-impl<const P: char, const N: u8> From<Pin<P, N, Output<PushPull>>>
-    for Pin<P, N, Output<OpenDrain>>
-{
-    #[inline(always)]
-    fn from(f: Pin<P, N, Output<PushPull>>) -> Self {
-        f.into_mode()
-    }
+pub trait PInto<T> {
+    fn pinto(self) -> T;
 }
 
-impl<const P: char, const N: u8> From<Pin<P, N, Output<OpenDrain>>>
-    for Pin<P, N, Output<PushPull>>
-{
-    #[inline(always)]
-    fn from(f: Pin<P, N, Output<OpenDrain>>) -> Self {
-        f.into_mode()
-    }
-}
-
-impl<const P: char, const N: u8> From<Pin<P, N, Input>> for Pin<P, N, Analog> {
-    #[inline(always)]
-    fn from(f: Pin<P, N, Input>) -> Self {
-        f.into_mode()
-    }
-}
-
-impl<const P: char, const N: u8, Otype> From<Pin<P, N, Output<Otype>>> for Pin<P, N, Analog>
+impl<T, U> PInto<U> for T
 where
-    Output<Otype>: PinMode,
+    U: PFrom<T>,
 {
-    #[inline(always)]
-    fn from(f: Pin<P, N, Output<Otype>>) -> Self {
-        f.into_mode()
+    fn pinto(self) -> U {
+        U::pfrom(self)
     }
 }
 
