@@ -10,6 +10,8 @@ use hal::{gpio::NoPin, pac, prelude::*};
 use smart_leds::{brightness, hsv::RGB8, SmartLedsWrite};
 use ws2812_spi as ws2812;
 
+type SPins = (hal::gpio::PA5<(hal::pac::SPI1, hal::spi::Sck)>, NoPin, hal::gpio::PA7<(hal::pac::SPI1, hal::spi::Mosi)>);
+
 #[entry]
 fn main() -> ! {
     let dp = pac::Peripherals::take().expect("cannot take peripherals");
@@ -21,7 +23,7 @@ fn main() -> ! {
     let mut delay = dp.TIM1.delay_us(&clocks);
     let gpioa = dp.GPIOA.split();
 
-    let spi = dp.SPI1.spi(
+    let spi: hal::spi::Spi1<SPins, false> = dp.SPI1.spi(
         (gpioa.pa5, NoPin, gpioa.pa7),
         ws2812::MODE,
         3500.kHz(),

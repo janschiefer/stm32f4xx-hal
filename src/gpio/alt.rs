@@ -1,4 +1,4 @@
-use super::{marker, Alternate, NoPin, OpenDrain, Pin, PinMode, PushPull};
+use super::{marker, Alternate, NoPin, OpenDrain, Pin, PinMode, PushPull, PFrom};
 use crate::{gpio, i2c, i2s, pac, serial, spi};
 
 pub struct Const<const A: u8>;
@@ -53,6 +53,10 @@ pub trait PinA<PIN, PER> {
     type A;
 }
 
+pub trait APin<PIN, PER> { }
+impl<PIN, PER, const P: char, const A: u8> APin<PIN, PER> for Pin<P, A, (PER, PIN)> { }
+impl<PIN, PER> APin<PIN, PER> for NoPin { }
+
 impl<PIN, PER> PinA<PIN, PER> for NoPin
 where
     PIN: crate::Sealed,
@@ -67,6 +71,29 @@ macro_rules! pin {
             $(
                 impl<MODE> PinA<$Pin, pac::$I2C> for gpio::$PX<MODE> {
                     type A = Const<$A>;
+                }
+                
+                impl<MODE: PinMode> PFrom<gpio::$PX<MODE>> for gpio::$PX<(pac::$I2C, $Pin)> {
+                    fn pfrom(f: gpio::$PX<MODE>) -> Self {
+                        let _: gpio::$PX<Alternate<$A>> = f.into_mode();
+                        gpio::$PX::new()
+                    }
+                }
+            )*
+        )*
+    };
+    ( $(<$Pin:ty, $I2C:ident, OD> for [$($PX:ident<$A:literal>),*]),*) => {
+        $(
+            $(
+                impl<MODE> PinA<$Pin, pac::$I2C> for gpio::$PX<MODE> {
+                    type A = Const<$A>;
+                }
+                
+                impl<MODE: PinMode> PFrom<gpio::$PX<MODE>> for gpio::$PX<(pac::$I2C, $Pin)> {
+                    fn pfrom(f: gpio::$PX<MODE>) -> Self {
+                        let _: gpio::$PX<Alternate<$A, OpenDrain>> = f.into_mode();
+                        gpio::$PX::new()
+                    }
                 }
             )*
         )*
@@ -148,12 +175,12 @@ mod can {
 // I2C pins
 
 pin! {
-    <i2c::Scl, I2C1> for [PB6<4>, PB8<4>],
-    <i2c::Sda, I2C1> for [PB7<4>, PB9<4>]
+    <i2c::Scl, I2C1, OD> for [PB6<4>, PB8<4>],
+    <i2c::Sda, I2C1, OD> for [PB7<4>, PB9<4>]
 }
 
 #[cfg(any(feature = "stm32f446"))]
-pin! { <i2c::Sda, I2C2> for [PB3<4>] }
+pin! { <i2c::Sda, I2C2, OD> for [PB3<4>] }
 
 #[cfg(any(
     feature = "stm32f401",
@@ -163,7 +190,7 @@ pin! { <i2c::Sda, I2C2> for [PB3<4>] }
     feature = "stm32f413",
     feature = "stm32f423"
 ))]
-pin! { <i2c::Sda, I2C2> for [PB3<9>] }
+pin! { <i2c::Sda, I2C2, OD> for [PB3<9>] }
 
 #[cfg(any(
     feature = "stm32f410",
@@ -172,9 +199,9 @@ pin! { <i2c::Sda, I2C2> for [PB3<9>] }
     feature = "stm32f413",
     feature = "stm32f423"
 ))]
-pin! { <i2c::Sda, I2C2> for [PB9<9>] }
+pin! { <i2c::Sda, I2C2, OD> for [PB9<9>] }
 
-pin! { <i2c::Scl, I2C2> for [PB10<4>] }
+pin! { <i2c::Scl, I2C2, OD> for [PB10<4>] }
 
 #[cfg(any(
     feature = "stm32f405",
@@ -194,10 +221,10 @@ pin! { <i2c::Scl, I2C2> for [PB10<4>] }
     feature = "stm32f469",
     feature = "stm32f479"
 ))]
-pin! { <i2c::Sda, I2C2> for [PB11<4>] }
+pin! { <i2c::Sda, I2C2, OD> for [PB11<4>] }
 
 #[cfg(any(feature = "stm32f446"))]
-pin! { <i2c::Sda, I2C2> for [PC12<4>] }
+pin! { <i2c::Sda, I2C2, OD> for [PC12<4>] }
 
 #[cfg(any(
     feature = "stm32f405",
@@ -216,8 +243,8 @@ pin! { <i2c::Sda, I2C2> for [PC12<4>] }
     feature = "stm32f479"
 ))]
 pin! {
-    <i2c::Scl, I2C2> for [PF1<4>],
-    <i2c::Sda, I2C2> for [PF0<4>]
+    <i2c::Scl, I2C2, OD> for [PF1<4>],
+    <i2c::Sda, I2C2, OD> for [PF0<4>]
 }
 
 #[cfg(any(
@@ -233,18 +260,18 @@ pin! {
     feature = "stm32f479"
 ))]
 pin! {
-    <i2c::Scl, I2C2> for [PH4<4>],
-    <i2c::Sda, I2C2> for [PH5<4>]
+    <i2c::Scl, I2C2, OD> for [PH4<4>],
+    <i2c::Sda, I2C2, OD> for [PH5<4>]
 }
 
 #[cfg(feature = "i2c3")]
 pin! {
-    <i2c::Scl, I2C3> for [PA8<4>],
-    <i2c::Sda, I2C3> for [PC9<4>]
+    <i2c::Scl, I2C3, OD> for [PA8<4>],
+    <i2c::Sda, I2C3, OD> for [PC9<4>]
 }
 
 #[cfg(feature = "stm32f446")]
-pin! { <i2c::Sda, I2C3> for [PB4<4>] }
+pin! { <i2c::Sda, I2C3, OD> for [PB4<4>] }
 
 #[cfg(any(
     feature = "stm32f401",
@@ -253,7 +280,7 @@ pin! { <i2c::Sda, I2C3> for [PB4<4>] }
     feature = "stm32f413",
     feature = "stm32f423"
 ))]
-pin! { <i2c::Sda, I2C3> for [PB4<9>] }
+pin! { <i2c::Sda, I2C3, OD> for [PB4<9>] }
 
 #[cfg(any(
     feature = "stm32f411",
@@ -261,7 +288,7 @@ pin! { <i2c::Sda, I2C3> for [PB4<9>] }
     feature = "stm32f413",
     feature = "stm32f423"
 ))]
-pin! { <i2c::Sda, I2C3> for [PB8<9>] }
+pin! { <i2c::Sda, I2C3, OD> for [PB8<9>] }
 
 #[cfg(any(
     feature = "stm32f405",
@@ -276,24 +303,24 @@ pin! { <i2c::Sda, I2C3> for [PB8<9>] }
     feature = "stm32f479"
 ))]
 pin! {
-    <i2c::Scl, I2C3> for [PH7<4>],
-    <i2c::Sda, I2C3> for [PH8<4>]
+    <i2c::Scl, I2C3, OD> for [PH7<4>],
+    <i2c::Sda, I2C3, OD> for [PH8<4>]
 }
 
 #[cfg(feature = "fmpi2c1")]
 pin! {
-    <i2c::Sda, FMPI2C1> for [PB3<4>],
-    <i2c::Scl, FMPI2C1> for [PB10<9>],
-    <i2c::Sda, FMPI2C1> for [PB14<4>],
-    <i2c::Scl, FMPI2C1> for [PB15<4>],
-    <i2c::Scl, FMPI2C1> for [PC6<4>],
-    <i2c::Sda, FMPI2C1> for [PC7<4>],
-    <i2c::Scl, FMPI2C1> for [PD12<4>],
-    <i2c::Sda, FMPI2C1> for [PD13<4>],
-    <i2c::Scl, FMPI2C1> for [PD14<4>],
-    <i2c::Sda, FMPI2C1> for [PD15<4>],
-    <i2c::Scl, FMPI2C1> for [PF14<4>],
-    <i2c::Sda, FMPI2C1> for [PF15<4>]
+    <i2c::Sda, FMPI2C1, OD> for [PB3<4>],
+    <i2c::Scl, FMPI2C1, OD> for [PB10<9>],
+    <i2c::Sda, FMPI2C1, OD> for [PB14<4>],
+    <i2c::Scl, FMPI2C1, OD> for [PB15<4>],
+    <i2c::Scl, FMPI2C1, OD> for [PC6<4>],
+    <i2c::Sda, FMPI2C1, OD> for [PC7<4>],
+    <i2c::Scl, FMPI2C1, OD> for [PD12<4>],
+    <i2c::Sda, FMPI2C1, OD> for [PD13<4>],
+    <i2c::Scl, FMPI2C1, OD> for [PD14<4>],
+    <i2c::Sda, FMPI2C1, OD> for [PD15<4>],
+    <i2c::Scl, FMPI2C1, OD> for [PF14<4>],
+    <i2c::Sda, FMPI2C1, OD> for [PF15<4>]
 }
 
 // SPI pins

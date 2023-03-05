@@ -1,5 +1,66 @@
 use super::*;
 
+pub trait PFrom<T> {
+    fn pfrom(f: T) -> Self;
+}
+
+impl PFrom<NoPin> for NoPin {
+    fn pfrom(p: NoPin) -> Self {
+        p
+    }
+}
+
+impl<P1, P2, P1F, P2F> PFrom<(P1F, P2F)> for (P1, P2)
+where
+    P1: PFrom<P1F>,
+    P2: PFrom<P2F>,
+{
+    fn pfrom((p1f, p2f): (P1F, P2F)) -> Self {
+        (P1::pfrom(p1f), P2::pfrom(p2f))
+    }
+}
+
+impl<P1, P2, P3, P1F, P2F, P3F> PFrom<(P1F, P2F, P3F)> for (P1, P2, P3)
+where
+    P1: PFrom<P1F>,
+    P2: PFrom<P2F>,
+    P3: PFrom<P3F>,
+{
+    fn pfrom((p1f, p2f, p3f): (P1F, P2F, P3F)) -> Self {
+        (P1::pfrom(p1f), P2::pfrom(p2f), P3::pfrom(p3f))
+    }
+}
+
+impl<P1, P2, P3, P4, P1F, P2F, P3F, P4F> PFrom<(P1F, P2F, P3F, P4F)> for (P1, P2, P3, P4)
+where
+    P1: PFrom<P1F>,
+    P2: PFrom<P2F>,
+    P3: PFrom<P3F>,
+    P4: PFrom<P4F>,
+{
+    fn pfrom((p1f, p2f, p3f, p4f): (P1F, P2F, P3F, P4F)) -> Self {
+        (
+            P1::pfrom(p1f),
+            P2::pfrom(p2f),
+            P3::pfrom(p3f),
+            P4::pfrom(p4f),
+        )
+    }
+}
+
+pub trait PInto<T> {
+    fn pinto(self) -> T;
+}
+
+impl<T, U> PInto<U> for T
+where
+    U: PFrom<T>,
+{
+    fn pinto(self) -> U {
+        U::pfrom(self)
+    }
+}
+
 impl<const P: char, const N: u8, const A: u8> Pin<P, N, Alternate<A, PushPull>> {
     /// Turns pin alternate configuration pin into open drain
     pub fn set_open_drain(self) -> Pin<P, N, Alternate<A, OpenDrain>> {

@@ -57,9 +57,9 @@
 use core::marker::PhantomData;
 
 mod alt;
-pub(crate) use alt::{Const, PinA, SetAlternate};
+pub(crate) use alt::{Const, PinA, SetAlternate, APin};
 mod convert;
-pub use convert::PinMode;
+pub use convert::{PinMode, PFrom, PInto};
 mod partially_erased;
 pub use partially_erased::{PEPin, PartiallyErasedPin};
 mod erased;
